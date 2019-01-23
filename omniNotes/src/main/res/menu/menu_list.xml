@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  ~ Copyright (C) 2015 Federico Iosue (federico.iosue@gmail.com)
+  ~ Copyright (C) 2013-2019 Federico Iosue (federico@iosue.it)
   ~
   ~ This program is free software: you can redistribute it and/or modify
   ~ it under the terms of the GNU General Public License as published by
@@ -55,26 +55,33 @@
         android:visible="false"
         app:showAsAction="ifRoom"/>
     <item
-        android:id="@+id/menu_category"
-        android:icon="@drawable/ic_folder_special_white_24dp"
-        android:orderInCategory="175"
-        android:title="@string/category"
-        android:visible="false"
-        app:showAsAction="ifRoom"/>
-    <item
-        android:id="@+id/menu_tags"
-        android:icon="@drawable/ic_loyalty_white_24dp"
-        android:orderInCategory="200"
-        android:title="@string/tags"
-        android:visible="false"
-        app:showAsAction="always"/>
-    <item
         android:id="@+id/menu_select_all"
         android:icon="@drawable/ic_select_all_white_24dp"
-        android:orderInCategory="250"
+        android:orderInCategory="175"
         app:showAsAction="always"
         android:title="@string/select_all"
         android:visible="false"/>
+    <item
+        android:id="@+id/menu_category"
+        android:icon="@drawable/ic_folder_special_white_24dp"
+        android:orderInCategory="200"
+        android:title="@string/category"
+        android:visible="false"
+        app:showAsAction="always"/>
+    <item
+        android:id="@+id/menu_uncomplete_checklists"
+        android:icon="@drawable/ic_format_list_checks_white_24dp"
+        android:orderInCategory="225"
+        android:title="@string/checklist"
+        android:visible="false"
+        app:showAsAction="always"/>
+    <item
+        android:id="@+id/menu_tags"
+        android:icon="@drawable/ic_loyalty_white_24dp"
+        android:orderInCategory="250"
+        android:title="@string/tags"
+        android:visible="false"
+        app:showAsAction="always"/>
     <item
         android:id="@+id/menu_add_reminder"
         android:orderInCategory="250"

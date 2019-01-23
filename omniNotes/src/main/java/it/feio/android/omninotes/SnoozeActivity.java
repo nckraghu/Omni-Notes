@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Federico Iosue (federico.iosue@gmail.com)
+ * Copyright (C) 2013-2019 Federico Iosue (federico@iosue.it)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.support.v7.app.ActionBarActivity;
+import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.widget.DatePicker;
 import android.widget.TimePicker;
@@ -42,7 +42,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 
 
-public class SnoozeActivity extends ActionBarActivity implements OnReminderPickedListener, DatePickerDialog.OnDateSetListener, TimePickerDialog.OnTimeSetListener {
+public class SnoozeActivity extends AppCompatActivity implements OnReminderPickedListener, DatePickerDialog.OnDateSetListener, TimePickerDialog.OnTimeSetListener {
 
     private Note note;
     private Note[] notes;

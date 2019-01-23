@@ -1,18 +1,19 @@
-/*******************************************************************************
- * Copyright 2014 Federico Iosue (federico.iosue@gmail.com)
+/*
+ * Copyright (C) 2013-2019 Federico Iosue (federico@iosue.it)
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- ******************************************************************************/
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 package it.feio.android.omninotes;
 
 import android.Manifest;
@@ -20,7 +21,6 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.media.RingtoneManager;
 import android.net.Uri;
@@ -35,25 +35,34 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.webkit.WebView;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 import com.afollestad.materialdialogs.MaterialDialog;
+import com.afollestad.materialdialogs.folderselector.FolderChooserDialog;
+
+import edu.emory.mathcs.backport.java.util.Collections;
 import it.feio.android.analitica.AnalyticsHelper;
 import it.feio.android.omninotes.async.DataBackupIntentService;
-import it.feio.android.omninotes.helpers.AppVersionHelper;
-import it.feio.android.omninotes.helpers.LanguageHelper;
-import it.feio.android.omninotes.helpers.PermissionsHelper;
+import it.feio.android.omninotes.helpers.*;
 import it.feio.android.omninotes.models.ONStyle;
+import it.feio.android.omninotes.models.PasswordValidator;
 import it.feio.android.omninotes.utils.*;
 import org.apache.commons.lang.StringUtils;
+import org.bitbucket.cowwoc.diffmatchpatch.DiffMatchPatch;
+import rx.Observable;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.LinkedList;
 import java.util.List;
+
+import static java.util.Arrays.asList;
+import static java.util.Collections.reverse;
 
 
 public class SettingsFragment extends PreferenceFragment {
@@ -64,10 +73,12 @@ public class SettingsFragment extends PreferenceFragment {
 	private final int RINGTONE_REQUEST_CODE = 100;
 	public final static String XML_NAME = "xmlName";
 	private Activity activity;
+	private SettingsFragment pf;
 
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
+		pf = this;
 		super.onCreate(savedInstanceState);
 		int xmlId = R.xml.settings;
 		if (getArguments() != null && getArguments().containsKey(XML_NAME)) {
@@ -158,6 +169,79 @@ public class SettingsFragment extends PreferenceFragment {
 			});
 		}
 
+		// Import legacy notes
+		Preference importLegacyData = findPreference("settings_import_data_legacy");
+		if (importLegacyData != null) {
+			importLegacyData.setOnPreferenceClickListener(arg0 -> {
+
+				// Finds actually saved backups names
+				PermissionsHelper.requestPermission(getActivity(), Manifest.permission.READ_EXTERNAL_STORAGE, R
+						.string.permission_external_storage, activity.findViewById(R.id.crouton_handle), () -> new
+						FolderChooserDialog.Builder((SettingsActivity) getActivity())
+						.chooseButton(R.string.md_choose_label)
+						.show());
+				return false;
+			});
+		}
+
+
+//		// Autobackup feature integrity check
+//		Preference backupIntegrityCheck = findPreference("settings_backup_integrity_check");
+//		if (backupIntegrityCheck != null) {
+//			backupIntegrityCheck.setOnPreferenceClickListener(arg0 -> {
+//				List<LinkedList<DiffMatchPatch.Diff>> errors = BackupHelper.integrityCheck(StorageHelper
+//						.getBackupDir(ConstantsBase.AUTO_BACKUP_DIR));
+//				if (errors.isEmpty()) {
+//					new MaterialDialog.Builder(activity)
+//							.content("Everything is ok")
+//							.positiveText(R.string.ok)
+//							.build().show();
+//				} else {
+//					DiffMatchPatch diffMatchPatch = new DiffMatchPatch();
+//					String content = Observable.from(errors).map(diffs -> diffMatchPatch.diffPrettyHtml(diffs) +
+//							"<br/>").toList().toBlocking().first().toString();
+//					View v = getActivity().getLayoutInflater().inflate(R.layout.webview, null);
+//					((WebView) v.findViewById(R.id.webview)).loadData(content, "text/html", null);
+//					new MaterialDialog.Builder(activity)
+//							.customView(v, true)
+//							.positiveText(R.string.ok)
+//							.negativeText("Copy to clipboard")
+//							.onNegative((dialog, which) -> {
+//								SystemHelper.copyToClipboard(activity, content);
+//								Toast.makeText(activity, "Copied to clipboard", Toast.LENGTH_SHORT).show();
+//							})
+//							.build().show();
+//				}
+//				return false;
+//			});
+//		}
+//
+//		// Autobackup
+//		final SwitchPreference enableAutobackup = (SwitchPreference) findPreference("settings_enable_autobackup");
+//		if (enableAutobackup != null) {
+//			enableAutobackup.setOnPreferenceChangeListener((preference, newValue) -> {
+//				if ((Boolean) newValue) {
+//					new MaterialDialog.Builder(activity)
+//							.content(R.string.settings_enable_automatic_backup_dialog)
+//							.positiveText(R.string.confirm)
+//							.negativeText(R.string.cancel)
+//							.onPositive((dialog, which) -> {
+//								PermissionsHelper.requestPermission(getActivity(), Manifest.permission
+//										.WRITE_EXTERNAL_STORAGE, R
+//										.string.permission_external_storage, activity.findViewById(R.id
+//										.crouton_handle), () -> {
+//									BackupHelper.startBackupService(Constants.AUTO_BACKUP_DIR);
+//									enableAutobackup.setChecked(true);
+//								});
+//							})
+//							.build().show();
+//				} else {
+//					enableAutobackup.setChecked(false);
+//				}
+//				return false;
+//			});
+//		}
+
 
 		// Import notes from Springpad export zip file
 		Preference importFromSpringpad = findPreference("settings_import_from_springpad");
@@ -204,8 +288,8 @@ public class SettingsFragment extends PreferenceFragment {
 				swipeToTrash.setChecked(true);
 				swipeToTrash.setSummary(getResources().getString(R.string.settings_swipe_to_trash_summary_2));
 			} else {
-				swipeToTrash.setSummary(getResources().getString(R.string.settings_swipe_to_trash_summary_1));
 				swipeToTrash.setChecked(false);
+				swipeToTrash.setSummary(getResources().getString(R.string.settings_swipe_to_trash_summary_1));
 			}
 			swipeToTrash.setOnPreferenceChangeListener((preference, newValue) -> {
 				if ((Boolean) newValue) {
@@ -213,8 +297,7 @@ public class SettingsFragment extends PreferenceFragment {
 				} else {
 					swipeToTrash.setSummary(getResources().getString(R.string.settings_swipe_to_trash_summary_1));
 				}
-				swipeToTrash.setChecked((Boolean) newValue);
-				return false;
+				return true;
 			});
 		}
 
@@ -224,8 +307,7 @@ public class SettingsFragment extends PreferenceFragment {
 				.PREF_SHOW_UNCATEGORIZED);
 		if (showUncategorized != null) {
 			showUncategorized.setOnPreferenceChangeListener((preference, newValue) -> {
-				showUncategorized.setChecked((Boolean) newValue);
-				return false;
+				return true;
 			});
 		}
 
@@ -234,8 +316,7 @@ public class SettingsFragment extends PreferenceFragment {
 		final SwitchPreference autoLocation = (SwitchPreference) findPreference(Constants.PREF_AUTO_LOCATION);
 		if (autoLocation != null) {
 			autoLocation.setOnPreferenceChangeListener((preference, newValue) -> {
-				autoLocation.setChecked((Boolean) newValue);
-				return false;
+				return true;
 			});
 		}
 
@@ -277,11 +358,11 @@ public class SettingsFragment extends PreferenceFragment {
 			}
 			passwordAccess.setOnPreferenceChangeListener((preference, newValue) -> {
 				PasswordHelper.requestPassword(getActivity(), passwordConfirmed -> {
-					if (passwordConfirmed) {
+					if (passwordConfirmed.equals(PasswordValidator.Result.SUCCEED)) {
 						passwordAccess.setChecked((Boolean) newValue);
 					}
 				});
-				return false;
+				return true;
 			});
 		}
 
@@ -370,7 +451,6 @@ public class SettingsFragment extends PreferenceFragment {
 			});
 		}
 
-
 		// Notification snooze delay
 		final EditTextPreference snoozeDelay = (EditTextPreference) findPreference
 				("settings_notification_snooze_delay");
@@ -389,7 +469,8 @@ public class SettingsFragment extends PreferenceFragment {
 
 
 		// NotificationServiceListener shortcut
-		final Preference norificationServiceListenerPreference = findPreference("settings_notification_service_listener");
+		final Preference norificationServiceListenerPreference = findPreference
+				("settings_notification_service_listener");
 		if (norificationServiceListenerPreference != null) {
 			if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN_MR2) {
 				getPreferenceScreen().removePreference(norificationServiceListenerPreference);
@@ -432,7 +513,7 @@ public class SettingsFragment extends PreferenceFragment {
 								prefs.edit().clear().commit();
 								File db = getActivity().getDatabasePath(Constants.DATABASE_NAME);
 								StorageHelper.delete(getActivity(), db.getAbsolutePath());
-								File attachmentsDir = StorageHelper.getAttachmentDir(getActivity());
+								File attachmentsDir = StorageHelper.getAttachmentDir();
 								StorageHelper.delete(getActivity(), attachmentsDir.getAbsolutePath());
 								File cacheDir = StorageHelper.getCacheDir(getActivity());
 								StorageHelper.delete(getActivity(), cacheDir.getAbsolutePath());
@@ -513,9 +594,10 @@ public class SettingsFragment extends PreferenceFragment {
 
 
 	private void importNotes() {
-		final CharSequence[] backups = StorageHelper.getExternalStoragePublicDir().list();
+		final List<String> backups = asList(StorageHelper.getExternalStoragePublicDir().list());
+		reverse(backups);
 
-		if (backups.length == 0) {
+		if (backups.size() == 0) {
 			((SettingsActivity)getActivity()).showMessage(R.string.no_backups_available, ONStyle.WARN);
 		} else {
 
@@ -538,7 +620,7 @@ public class SettingsFragment extends PreferenceFragment {
 				lv.setOnItemClickListener((parent, view, position, id) -> {
 
 					// Retrieves backup size
-					File backupDir = StorageHelper.getBackupDir(backups[position].toString());
+					File backupDir = StorageHelper.getBackupDir(backups.get(position));
 					long size = StorageHelper.getSize(backupDir) / 1024;
 					String sizeString = size > 1024 ? size / 1024 + "Mb" : size + "Kb";
 
@@ -546,7 +628,7 @@ public class SettingsFragment extends PreferenceFragment {
 					String prefName = StorageHelper.getSharedPreferencesFile(getActivity()).getName();
 					boolean hasPreferences = (new File(backupDir, prefName)).exists();
 
-					String message = backups[position]
+					String message = backups.get(position)
 							+ " (" + sizeString
 							+ (hasPreferences ? " " + getString(R.string.settings_included) : "")
 							+ ")";
@@ -569,7 +651,7 @@ public class SettingsFragment extends PreferenceFragment {
 											DataBackupIntentService.class);
 									service.setAction(DataBackupIntentService.ACTION_DATA_IMPORT);
 									service.putExtra(DataBackupIntentService.INTENT_BACKUP_NAME,
-											backups[position]);
+											backups.get(position));
 									getActivity().startService(service);
 								}
 							}).build().show();
@@ -579,13 +661,13 @@ public class SettingsFragment extends PreferenceFragment {
 				lv.setOnItemLongClickListener((parent, view, position, id) -> {
 
 					// Retrieves backup size
-					File backupDir = StorageHelper.getBackupDir(backups[position].toString());
+					File backupDir = StorageHelper.getBackupDir(backups.get(position));
 					long size = StorageHelper.getSize(backupDir) / 1024;
 					String sizeString = size > 1024 ? size / 1024 + "Mb" : size + "Kb";
 
 					new MaterialDialog.Builder(getActivity())
 							.title(R.string.confirm_removing_backup)
-							.content(backups[position] + "" + " (" + sizeString + ")")
+							.content(backups.get(position) + "" + " (" + sizeString + ")")
 							.positiveText(R.string.confirm)
 							.callback(new MaterialDialog.ButtonCallback() {
 								@Override
@@ -596,7 +678,7 @@ public class SettingsFragment extends PreferenceFragment {
 											DataBackupIntentService.class);
 									service.setAction(DataBackupIntentService.ACTION_DATA_DELETE);
 									service.putExtra(DataBackupIntentService.INTENT_BACKUP_NAME,
-											backups[position]);
+											backups.get(position));
 									getActivity().startService(service);
 								}
 							}).build().show();
@@ -611,21 +693,30 @@ public class SettingsFragment extends PreferenceFragment {
 
 
 	private void export(View v) {
-		final List<String> backups = Arrays.asList(StorageHelper.getExternalStoragePublicDir().list());
+		final List<String> backups = asList(StorageHelper.getExternalStoragePublicDir().list());
 
 		// Sets default export file name
 		SimpleDateFormat sdf = new SimpleDateFormat(Constants.DATE_FORMAT_EXPORT);
 		String fileName = sdf.format(Calendar.getInstance().getTime());
-		final EditText fileNameEditText = (EditText) v.findViewById(R.id.export_file_name);
-		final TextView backupExistingTextView = (TextView) v.findViewById(R.id.backup_existing);
+		final EditText fileNameEditText = v.findViewById(R.id.export_file_name);
+		final TextView backupExistingTextView = v.findViewById(R.id.backup_existing);
 		fileNameEditText.setHint(fileName);
 		fileNameEditText.addTextChangedListener(new TextWatcher() {
 			@Override
-			public void onTextChanged(CharSequence arg0, int arg1, int arg2, int arg3) {}
+			public void onTextChanged(CharSequence arg0, int arg1, int arg2, int arg3) {
+
+			}
+
+
 			@Override
-			public void beforeTextChanged(CharSequence arg0, int arg1, int arg2, int arg3) {}
+			public void beforeTextChanged(CharSequence arg0, int arg1, int arg2, int arg3) {
+
+			}
+
+
 			@Override
 			public void afterTextChanged(Editable arg0) {
+
 				if (backups.contains(arg0.toString())) {
 					backupExistingTextView.setText(R.string.backup_existing);
 				} else {
@@ -642,13 +733,9 @@ public class SettingsFragment extends PreferenceFragment {
 					@Override
 					public void onPositive(MaterialDialog materialDialog) {
 						((OmniNotes)getActivity().getApplication()).getAnalyticsHelper().trackEvent(AnalyticsHelper.CATEGORIES.SETTING, "settings_export_data");
-						// An IntentService will be launched to accomplish the export task
-						Intent service = new Intent(getActivity(), DataBackupIntentService.class);
-						service.setAction(DataBackupIntentService.ACTION_DATA_EXPORT);
 						String backupName = StringUtils.isEmpty(fileNameEditText.getText().toString()) ?
 								fileNameEditText.getHint().toString() : fileNameEditText.getText().toString();
-						service.putExtra(DataBackupIntentService.INTENT_BACKUP_NAME, backupName);
-						getActivity().startService(service);
+						BackupHelper.startBackupService(backupName);
 					}
 				}).build().show();
 	}
@@ -670,8 +757,8 @@ public class SettingsFragment extends PreferenceFragment {
 					String path = FileHelper.getPath(getActivity(), filesUri);
 					// An IntentService will be launched to accomplish the import task
 					Intent service = new Intent(getActivity(), DataBackupIntentService.class);
-					service.setAction(DataBackupIntentService.ACTION_DATA_IMPORT_SPRINGPAD);
-					service.putExtra(DataBackupIntentService.EXTRA_SPRINGPAD_BACKUP, path);
+					service.setAction(SpringImportHelper.ACTION_DATA_IMPORT_SPRINGPAD);
+					service.putExtra(SpringImportHelper.EXTRA_SPRINGPAD_BACKUP, path);
 					getActivity().startService(service);
 					break;
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Federico Iosue (federico.iosue@gmail.com)
+ * Copyright (C) 2013-2019 Federico Iosue (federico@iosue.it)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -119,39 +119,21 @@ public class DatePickerDialogFragment extends DialogFragment {
         // Of course, suggestions welcome.
 
         final DatePickerDialog picker = new DatePickerDialog(getActivity(), DatePickerDialog.THEME_HOLO_LIGHT,
-                getConstructorListener(), y, m, d);
+                mListener, y, m, d);
         picker.setTitle("");
 
-        if (hasJellyBeanAndAbove()) {
-            picker.setButton(DialogInterface.BUTTON_POSITIVE,
-                    getActivity().getString(android.R.string.ok),
-                    new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            DatePicker dp = picker.getDatePicker();
-                            mListener.onDateSet(dp,
-                                    dp.getYear(), dp.getMonth(), dp.getDayOfMonth());
-                        }
-                    });
-            picker.setButton(DialogInterface.BUTTON_NEGATIVE,
-                    getActivity().getString(android.R.string.cancel),
-                    new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                        }
-                    });
-        }
+		picker.setButton(DialogInterface.BUTTON_POSITIVE,
+				getActivity().getString(android.R.string.ok),
+				(dialog, which) -> {
+					DatePicker dp = picker.getDatePicker();
+					mListener.onDateSet(dp,
+							dp.getYear(), dp.getMonth(), dp.getDayOfMonth());
+				});
+		picker.setButton(DialogInterface.BUTTON_NEGATIVE,
+				getActivity().getString(android.R.string.cancel),
+				(dialog, which) -> {});
 
         return picker;
     }
 
-
-    private static boolean hasJellyBeanAndAbove() {
-        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN;
-    }
-
-
-    private OnDateSetListener getConstructorListener() {
-        return hasJellyBeanAndAbove() ? null : mListener;
-    }
 }

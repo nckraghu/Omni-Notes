@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Federico Iosue (federico.iosue@gmail.com)
+ * Copyright (C) 2013-2019 Federico Iosue (federico@iosue.it)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -45,7 +45,6 @@ public class DateHelperTest extends InstrumentationTestCase {
 		Assert.assertNotEquals(0, nextReminder2);
 		long delta = (nextReminder2 - reminder) / MILLISEC_TO_HOURS_RATIO;
 		Assert.assertTrue(delta == 3*24-2 || delta == 3*24-1); // The results depends on the day of week
-
 
 	}
 

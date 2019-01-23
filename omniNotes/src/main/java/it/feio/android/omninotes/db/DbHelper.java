@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Federico Iosue (federico.iosue@gmail.com)
+ * Copyright (C) 2013-2019 Federico Iosue (federico@iosue.it)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,17 +23,34 @@ import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.database.sqlite.SQLiteReadOnlyDatabaseException;
 import android.net.Uri;
 import android.util.Log;
-import it.feio.android.omninotes.OmniNotes;
-import it.feio.android.omninotes.async.upgrade.UpgradeProcessor;
-import it.feio.android.omninotes.models.*;
-import it.feio.android.omninotes.utils.*;
+
+import org.apache.commons.lang.StringEscapeUtils;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.*;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.regex.Pattern;
+
+import it.feio.android.omninotes.OmniNotes;
+import it.feio.android.omninotes.async.upgrade.UpgradeProcessor;
+import it.feio.android.omninotes.helpers.NotesHelper;
+import it.feio.android.omninotes.models.Attachment;
+import it.feio.android.omninotes.models.Category;
+import it.feio.android.omninotes.models.Note;
+import it.feio.android.omninotes.models.Stats;
+import it.feio.android.omninotes.models.Tag;
+import it.feio.android.omninotes.utils.AssetUtils;
+import it.feio.android.omninotes.utils.Constants;
+import it.feio.android.omninotes.utils.Navigation;
+import it.feio.android.omninotes.utils.Security;
+import it.feio.android.omninotes.utils.TagsHelper;
 
 
 public class DbHelper extends SQLiteOpenHelper {
@@ -41,7 +58,7 @@ public class DbHelper extends SQLiteOpenHelper {
     // Database name
     private static final String DATABASE_NAME = Constants.DATABASE_NAME;
     // Database version aligned if possible to software version
-    private static final int DATABASE_VERSION = 501;
+    private static final int DATABASE_VERSION = 560;
     // Sql query file directory
     private static final String SQL_DIR = "sql";
 
@@ -100,6 +117,7 @@ public class DbHelper extends SQLiteOpenHelper {
 	public static synchronized DbHelper getInstance() {
 		return getInstance(OmniNotes.getAppContext());
 	}
+	
 
 	public static synchronized DbHelper getInstance(Context context) {
         if (instance == null) {
@@ -107,6 +125,15 @@ public class DbHelper extends SQLiteOpenHelper {
         }
         return instance;
     }
+
+
+	public static synchronized DbHelper getInstance(boolean forcedNewInstance) {
+		if (instance == null || forcedNewInstance) {
+            Context context = instance.mContext == null ? OmniNotes.getAppContext() : instance.mContext;
+			instance = new DbHelper(context);
+		}
+		return instance;
+	}
 
 
     private DbHelper(Context mContext) {
@@ -127,18 +154,13 @@ public class DbHelper extends SQLiteOpenHelper {
 
 	public SQLiteDatabase getDatabase(boolean forceWritable) {
 		try {
-			SQLiteDatabase db = getReadableDatabase();
-			if (forceWritable && db.isReadOnly()) {
-				throw new SQLiteReadOnlyDatabaseException("Required writable database, obtained read-only");
-			}
-			return db;
+			return forceWritable ? getWritableDatabase() : getReadableDatabase();
 		} catch (IllegalStateException e) {
 			return this.db;
 		}
 	}
 
 
-    // Creating Tables
     @Override
     public void onCreate(SQLiteDatabase db) {
         try {
@@ -150,15 +172,15 @@ public class DbHelper extends SQLiteOpenHelper {
     }
 
 
-    // Upgrading database
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
 		this.db = db;
         Log.i(Constants.TAG, "Upgrading database version from " + oldVersion + " to " + newVersion);
 
-        UpgradeProcessor.process(oldVersion, newVersion);
-
         try {
+
+            UpgradeProcessor.process(oldVersion, newVersion);
+
             for (String sqlFile : AssetUtils.list(SQL_DIR, mContext.getAssets())) {
                 if (sqlFile.startsWith(UPGRADE_QUERY_PREFIX)) {
                     int fileVersion = Integer.parseInt(sqlFile.substring(UPGRADE_QUERY_PREFIX.length(),
@@ -170,7 +192,7 @@ public class DbHelper extends SQLiteOpenHelper {
             }
             Log.i(Constants.TAG, "Database upgrade successful");
 
-        } catch (IOException e) {
+        } catch (IOException |InvocationTargetException | IllegalAccessException e) {
             throw new RuntimeException("Database upgrade failed", e);
         }
     }
@@ -180,12 +202,9 @@ public class DbHelper extends SQLiteOpenHelper {
     public Note updateNote(Note note, boolean updateLastModification) {
         SQLiteDatabase db = getDatabase(true);
 
-        String content;
-        if (note.isLocked()) {
-            content = Security.encrypt(note.getContent(), prefs.getString(Constants.PREF_PASSWORD, ""));
-        } else {
-            content = note.getContent();
-        }
+        String content = note.isLocked()
+                ? Security.encrypt(note.getContent(), prefs.getString(Constants.PREF_PASSWORD, ""))
+                : note.getContent();
 
         // To ensure note and attachments insertions are atomical and boost performances transaction are used
         db.beginTransaction();
@@ -230,6 +249,7 @@ public class DbHelper extends SQLiteOpenHelper {
 
         db.setTransactionSuccessful();
         db.endTransaction();
+		db.close();
 
         // Fill the note with correct data before returning it
         note.setCreation(note.getCreation() != null ? note.getCreation() : values.getAsLong(KEY_CREATION));
@@ -365,46 +385,6 @@ public class DbHelper extends SQLiteOpenHelper {
 
 
     /**
-     * Counts words in a note
-     */
-    public int getWords(Note note) {
-        int count = 0;
-        String[] fields = {note.getTitle(), note.getContent()};
-        for (String field : fields) {
-            boolean word = false;
-            int endOfLine = field.length() - 1;
-            for (int i = 0; i < field.length(); i++) {
-                // if the char is a letter, word = true.
-                if (Character.isLetter(field.charAt(i)) && i != endOfLine) {
-                    word = true;
-                    // if char isn't a letter and there have been letters before,
-                    // counter goes up.
-                } else if (!Character.isLetter(field.charAt(i)) && word) {
-                    count++;
-                    word = false;
-                    // last word of String; if it doesn't end with a non letter, it
-                    // wouldn't count without this.
-                } else if (Character.isLetter(field.charAt(i)) && i == endOfLine) {
-                    count++;
-                }
-            }
-        }
-        return count;
-    }
-
-
-    /**
-     * Counts chars in a note
-     */
-    public int getChars(Note note) {
-        int count = 0;
-        count += note.getTitle().length();
-        count += note.getContent().length();
-        return count;
-    }
-
-
-    /**
      * Common method for notes retrieval. It accepts a query to perform and returns matching records.
      */
     public List<Note> getNotes(String whereCondition, boolean order) {
@@ -452,7 +432,7 @@ public class DbHelper extends SQLiteOpenHelper {
                 + " FROM " + TABLE_NOTES
                 + " LEFT JOIN " + TABLE_CATEGORY + " USING( " + KEY_CATEGORY + ") "
                 + whereCondition
-                + (order ? " ORDER BY " + sort_column + sort_order : "");
+                + (order ? " ORDER BY " + sort_column + " COLLATE NOCASE " + sort_order : "");
 
         Log.v(Constants.TAG, "Query: " + query);
 
@@ -539,25 +519,25 @@ public class DbHelper extends SQLiteOpenHelper {
     }
 
 
-    /**
-     * Deleting single note but keeping attachments
-     */
-    public boolean deleteNote(Note note, boolean keepAttachments) {
-        int deletedNotes;
-        boolean result = true;
-        SQLiteDatabase db = getDatabase(true);
-        // Delete notes
-        deletedNotes = db.delete(TABLE_NOTES, KEY_ID + " = ?", new String[]{String.valueOf(note.get_id())});
-        if (!keepAttachments) {
-            // Delete note's attachments
-            int deletedAttachments = db.delete(TABLE_ATTACHMENTS, KEY_ATTACHMENT_NOTE_ID + " = ?",
-                    new String[]{String.valueOf(note.get_id())});
-            result = result && deletedAttachments == note.getAttachmentsList().size();
-        }
-        // Check on correct and complete deletion
-        result = result && deletedNotes == 1;
-        return result;
-    }
+	/**
+	 * Deleting single note, eventually keeping attachments
+	 */
+	public boolean deleteNote(Note note, boolean keepAttachments) {
+		return deleteNote(note.get_id(), keepAttachments);
+	}
+
+
+	/**
+	 * Deleting single note by its id
+	 */
+	public boolean deleteNote(long noteId, boolean keepAttachments) {
+		SQLiteDatabase db = getDatabase(true);
+		db.delete(TABLE_NOTES, KEY_ID + " = ?", new String[]{String.valueOf(noteId)});
+		if (!keepAttachments) {
+			db.delete(TABLE_ATTACHMENTS, KEY_ATTACHMENT_NOTE_ID + " = ?", new String[]{String.valueOf(noteId)});
+		}
+		return true;
+	}
 
 
     /**
@@ -577,6 +557,7 @@ public class DbHelper extends SQLiteOpenHelper {
      * @return Notes list
      */
     public List<Note> getNotesByPattern(String pattern) {
+    	String escapedPattern = escapeSql(pattern);
         int navigation = Navigation.getNavigation();
         String whereCondition = " WHERE "
                 + KEY_TRASHED + (navigation == Navigation.TRASH ? " IS 1" : " IS NOT 1")
@@ -586,11 +567,15 @@ public class DbHelper extends SQLiteOpenHelper {
                 + " == 0) " : "")
                 + (Navigation.checkNavigation(Navigation.REMINDERS) ? " AND " + KEY_REMINDER + " IS NOT NULL" : "")
                 + " AND ("
-                + " ( " + KEY_LOCKED + " IS NOT 1 AND (" + KEY_TITLE + " LIKE '%" + pattern + "%' " + " OR " +
-                KEY_CONTENT + " LIKE '%" + pattern + "%' ))"
-                + " OR ( " + KEY_LOCKED + " = 1 AND " + KEY_TITLE + " LIKE '%" + pattern + "%' )"
+                + " ( " + KEY_LOCKED + " IS NOT 1 AND (" + KEY_TITLE + " LIKE '%" + escapedPattern + "%' ESCAPE '\\' " + " OR " +
+                KEY_CONTENT + " LIKE '%" + escapedPattern + "%' ESCAPE '\\' ))"
+                + " OR ( " + KEY_LOCKED + " = 1 AND " + KEY_TITLE + " LIKE '%" + escapedPattern + "%' ESCAPE '\\' )"
                 + ")";
         return getNotes(whereCondition, true);
+    }
+
+    static String escapeSql(String pattern) {
+        return StringEscapeUtils.escapeSql(pattern).replace("%", "\\%").replace("_", "\\_");
     }
 
 
@@ -767,6 +752,15 @@ public class DbHelper extends SQLiteOpenHelper {
 				})
 				.filter(note -> note != null)
 				.toList().toBlocking().single();
+	}
+
+    /**
+     * Retrieves all uncompleted checklists
+     */
+    public List<Note> getNotesByUncompleteChecklist() {
+		String whereCondition = " WHERE " + KEY_CHECKLIST + " = 1 AND " + KEY_CONTENT + " LIKE '%" + it.feio.android
+				.checklistview.interfaces.Constants.UNCHECKED_SYM + "%'";
+		return getNotes(whereCondition, true);
 	}
 
 
@@ -1005,8 +999,8 @@ public class DbHelper extends SQLiteOpenHelper {
             if (note.getLongitude() != null && note.getLongitude() != 0) {
                 locations++;
             }
-            words = getWords(note);
-            chars = getChars(note);
+            words = NotesHelper.getWords(note);
+            chars = NotesHelper.getChars(note);
             if (words > maxWords) {
                 maxWords = words;
             }

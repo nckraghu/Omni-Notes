@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Federico Iosue (federico.iosue@gmail.com)
+ * Copyright (C) 2013-2019 Federico Iosue (federico@iosue.it)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -12,12 +12,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenseqs/>.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 package it.feio.android.omninotes;
 
 import android.animation.ValueAnimator;
+import android.content.res.Resources;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
@@ -153,7 +154,7 @@ public class NavigationDrawerFragment extends Fragment {
 
 
     public void init() {
-        Log.d(Constants.TAG, "Started navigation drawer initialization");
+        Log.v(Constants.TAG, "Started navigation drawer initialization");
 
         mDrawerLayout = (DrawerLayout) mActivity.findViewById(R.id.drawer_layout);
         mDrawerLayout.setFocusableInTouchMode(false);
@@ -194,15 +195,15 @@ public class NavigationDrawerFragment extends Fragment {
 		mDrawerLayout.setDrawerListener(mDrawerToggle);
         mDrawerToggle.setDrawerIndicatorEnabled(true);
 
-        Log.d(Constants.TAG, "Finished navigation drawer initialization");
+        Log.v(Constants.TAG, "Finished navigation drawer initialization");
     }
 
 
     private void refreshMenus() {
         buildMainMenu();
-        Log.d(Constants.TAG, "Finished main menu initialization");
+        Log.v(Constants.TAG, "Finished main menu initialization");
         buildCategoriesMenu();
-        Log.d(Constants.TAG, "Finished categories menu initialization");
+        Log.v(Constants.TAG, "Finished categories menu initialization");
         mDrawerToggle.syncState();
     }
 
@@ -241,4 +242,5 @@ public class NavigationDrawerFragment extends Fragment {
 //				.navigation_drawer_reserved_space);
 		return false;
 	}
+
 }

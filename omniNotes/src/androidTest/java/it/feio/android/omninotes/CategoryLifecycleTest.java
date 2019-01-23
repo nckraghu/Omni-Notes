@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2013-2019 Federico Iosue (federico@iosue.it)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package it.feio.android.omninotes;
 
 
@@ -60,11 +77,11 @@ public class CategoryLifecycleTest extends BaseEspressoTest {
         floatingActionButton.perform(click());
 
         ViewInteraction actionMenuItemView = onView(
-                allOf(withId(R.id.menu_category), withContentDescription("Category"), isDisplayed()));
+                allOf(withId(R.id.menu_category), withContentDescription(R.string.category), isDisplayed()));
         actionMenuItemView.perform(click());
 
         ViewInteraction mDButton = onView(
-                allOf(withId(R.id.buttonDefaultPositive), withText("Add category"), isDisplayed()));
+                allOf(withId(R.id.buttonDefaultPositive), withText(R.string.add_category), isDisplayed()));
         mDButton.perform(click());
 
         ViewInteraction appCompatEditText = onView(
@@ -90,7 +107,7 @@ public class CategoryLifecycleTest extends BaseEspressoTest {
         editText2.perform(replaceText("Note with new category"), closeSoftKeyboard());
 
         ViewInteraction navigationUp = onView(
-                allOf(withContentDescription("drawer open"),
+                allOf(withContentDescription(R.string.drawer_open),
                         withParent(withId(R.id.toolbar)),
                         isDisplayed()));
         navigationUp.perform(click());
@@ -103,14 +120,13 @@ public class CategoryLifecycleTest extends BaseEspressoTest {
         addNewCategory();
 
         ViewInteraction drawerToggle = onView(
-                allOf(withContentDescription("drawer open"),
+                allOf(withContentDescription(R.string.drawer_open),
                         withParent(withId(R.id.toolbar)),
                         isDisplayed()));
         drawerToggle.perform(click());
 
         ViewInteraction textView = onView(allOf(withId(R.id.title), withText(categoryName)));
         textView.check(matches(withText(categoryName)));
-
     }
 
     @Test
@@ -119,9 +135,8 @@ public class CategoryLifecycleTest extends BaseEspressoTest {
         addNewCategory();
 
         ViewInteraction drawerToggle = onView(
-                allOf(withContentDescription("drawer open"),
-                        withParent(withId(R.id.toolbar)),
-                        isDisplayed()));
+                allOf(withContentDescription(R.string.drawer_open),
+                        withParent(withId(R.id.toolbar))));
         drawerToggle.perform(click());
 
         ViewInteraction categoryView = onView(allOf(withId(R.id.title), withText(categoryName)));
@@ -141,7 +156,7 @@ public class CategoryLifecycleTest extends BaseEspressoTest {
         mDButton2.perform(click());
 
         ViewInteraction mDButton3 = onView(
-                allOf(withId(R.id.buttonDefaultNeutral), withText("Presets"),
+                allOf(withId(R.id.buttonDefaultNeutral), withText(R.string.md_presets_label),
                         withParent(allOf(withId(R.id.root),
                                 withParent(withId(android.R.id.content)))),
                         isDisplayed()));
@@ -160,7 +175,7 @@ public class CategoryLifecycleTest extends BaseEspressoTest {
         circleView2.perform(scrollTo(), click());
 
         ViewInteraction mDButton4 = onView(
-                allOf(withId(R.id.buttonDefaultPositive), withText("Done"),
+                allOf(withId(R.id.buttonDefaultPositive), withText(R.string.md_done_label),
                         withParent(allOf(withId(R.id.root),
                                 withParent(withId(android.R.id.content)))),
                         isDisplayed()));
@@ -177,7 +192,7 @@ public class CategoryLifecycleTest extends BaseEspressoTest {
         addNewCategory();
 
         ViewInteraction drawerToggle = onView(
-                allOf(withContentDescription("drawer open"),
+                allOf(withContentDescription(R.string.drawer_open),
                         withParent(withId(R.id.toolbar)),
                         isDisplayed()));
         drawerToggle.perform(click());
@@ -186,11 +201,11 @@ public class CategoryLifecycleTest extends BaseEspressoTest {
         categoryView.perform(longClick());
 
         ViewInteraction deleteBtn = onView(
-                allOf(withId(R.id.delete), withText("Delete"), isDisplayed()));
+                allOf(withId(R.id.delete), withText(R.string.delete), isDisplayed()));
         deleteBtn.perform(click());
 
         ViewInteraction deleteConfirmBtn = onView(
-                allOf(withId(R.id.buttonDefaultPositive), withText("Confirm"), isDisplayed()));
+                allOf(withId(R.id.buttonDefaultPositive), withText(R.string.confirm), isDisplayed()));
         deleteConfirmBtn.perform(click());
 
         // Waiting a little to ensure Eventbus post propagation

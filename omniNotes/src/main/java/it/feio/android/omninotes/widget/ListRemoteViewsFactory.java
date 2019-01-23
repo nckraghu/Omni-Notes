@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Federico Iosue (federico.iosue@gmail.com)
+ * Copyright (C) 2013-2019 Federico Iosue (federico@iosue.it)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,6 +30,8 @@ import android.view.View;
 import android.widget.RemoteViews;
 import android.widget.RemoteViewsService.RemoteViewsFactory;
 
+import com.bumptech.glide.request.target.AppWidgetTarget;
+
 import java.util.List;
 
 import it.feio.android.omninotes.OmniNotes;
@@ -45,15 +47,17 @@ import it.feio.android.omninotes.utils.TextHelper;
 
 public class ListRemoteViewsFactory implements RemoteViewsFactory {
 
+    private static boolean showThumbnails = true;
+    private static boolean showTimestamps = true;
     private final int WIDTH = 80;
     private final int HEIGHT = 80;
-
-    private static boolean showThumbnails = true;
-
     private OmniNotes app;
     private int appWidgetId;
     private List<Note> notes;
     private int navigation;
+
+    private AppWidgetTarget appWidgetTarget;
+
 
 
     public ListRemoteViewsFactory(Application app, Intent intent) {
@@ -61,6 +65,14 @@ public class ListRemoteViewsFactory implements RemoteViewsFactory {
         appWidgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID);
     }
 
+    public static void updateConfiguration(Context mContext, int mAppWidgetId, String sqlCondition,
+                                           boolean thumbnails, boolean timestamps) {
+        Log.d(Constants.TAG, "Widget configuration updated");
+        mContext.getSharedPreferences(Constants.PREFS_NAME, Context.MODE_MULTI_PROCESS).edit()
+                .putString(Constants.PREF_WIDGET_PREFIX + String.valueOf(mAppWidgetId), sqlCondition).commit();
+        showThumbnails = thumbnails;
+        showTimestamps = timestamps;
+    }
 
     @Override
     public void onCreate() {
@@ -71,7 +83,6 @@ public class ListRemoteViewsFactory implements RemoteViewsFactory {
                                 + String.valueOf(appWidgetId), "");
         notes = DbHelper.getInstance().getNotes(condition, true);
     }
-
 
     @Override
     public void onDataSetChanged() {
@@ -85,7 +96,6 @@ public class ListRemoteViewsFactory implements RemoteViewsFactory {
         notes = DbHelper.getInstance().getNotes(condition, true);
     }
 
-
     @Override
     public void onDestroy() {
         app.getSharedPreferences(Constants.PREFS_NAME, Context.MODE_MULTI_PROCESS)
@@ -94,12 +104,10 @@ public class ListRemoteViewsFactory implements RemoteViewsFactory {
                         + String.valueOf(appWidgetId)).commit();
     }
 
-
     @Override
     public int getCount() {
         return notes.size();
     }
-
 
     @Override
     public RemoteViews getViewAt(int position) {
@@ -115,15 +123,18 @@ public class ListRemoteViewsFactory implements RemoteViewsFactory {
         color(note, row);
 
         if (!note.isLocked() && showThumbnails && note.getAttachmentsList().size() > 0) {
-			Attachment mAttachment = note.getAttachmentsList().get(0);
-			Bitmap bmp = BitmapHelper.getBitmapFromAttachment(app, mAttachment, WIDTH, HEIGHT);
-			row.setBitmap(R.id.attachmentThumbnail, "setImageBitmap", bmp);
+      			Attachment mAttachment = note.getAttachmentsList().get(0);
+      			Bitmap bmp = BitmapHelper.getBitmapFromAttachment(app, mAttachment, WIDTH, HEIGHT);
+      			row.setBitmap(R.id.attachmentThumbnail, "setImageBitmap", bmp);
             row.setInt(R.id.attachmentThumbnail, "setVisibility", View.VISIBLE);
         } else {
             row.setInt(R.id.attachmentThumbnail, "setVisibility", View.GONE);
         }
-
-        row.setTextViewText(R.id.note_date, TextHelper.getDateText(app, note, navigation));
+        if(showTimestamps) {
+          row.setTextViewText(R.id.note_date, TextHelper.getDateText(app, note, navigation));
+        } else {
+          row.setTextViewText(R.id.note_date, "");
+        }
 
         // Next, set a fill-intent, which will be used to fill in the pending intent template
         // that is set on the collection view in StackWidgetProvider.
@@ -138,39 +149,25 @@ public class ListRemoteViewsFactory implements RemoteViewsFactory {
         return row;
     }
 
-
     @Override
     public RemoteViews getLoadingView() {
         return null;
     }
-
 
     @Override
     public int getViewTypeCount() {
         return 1;
     }
 
-
     @Override
     public long getItemId(int position) {
         return position;
     }
 
-
     @Override
     public boolean hasStableIds() {
         return false;
     }
-
-
-    public static void updateConfiguration(Context mContext, int mAppWidgetId, String sqlCondition, 
-                                           boolean thumbnails) {
-        Log.d(Constants.TAG, "Widget configuration updated");
-        mContext.getSharedPreferences(Constants.PREFS_NAME, Context.MODE_MULTI_PROCESS).edit()
-                .putString(Constants.PREF_WIDGET_PREFIX + String.valueOf(mAppWidgetId), sqlCondition).commit();
-        showThumbnails = thumbnails;
-    }
-
 
     private void color(Note note, RemoteViews row) {
 

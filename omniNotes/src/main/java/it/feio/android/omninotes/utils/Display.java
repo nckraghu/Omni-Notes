@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Federico Iosue (federico.iosue@gmail.com)
+ * Copyright (C) 2013-2019 Federico Iosue (federico@iosue.it)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@ import android.content.res.Configuration;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.os.Build;
-import android.support.v7.app.ActionBarActivity;
+import android.support.v7.app.AppCompatActivity;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.View;
@@ -49,12 +49,8 @@ public class Display {
             if (manager != null) {
                 android.view.Display display = manager.getDefaultDisplay();
                 if (display != null) {
-                    if (android.os.Build.VERSION.SDK_INT < 13) {
-                        displaySize.set(display.getWidth(), display.getHeight());
-                    } else {
-                        display.getSize(displaySize);
-                    }
-                }
+					display.getSize(displaySize);
+				}
             }
         } catch (Exception e) {
             Log.e(Constants.TAG , "Error checking display sizes", e);
@@ -108,8 +104,8 @@ public class Display {
     @SuppressLint("NewApi")
     public static int getActionbarHeight(Object mObject) {
         int res = 0;
-		if (ActionBarActivity.class.isAssignableFrom(mObject.getClass())) {
-			res = ((ActionBarActivity) mObject).getSupportActionBar().getHeight();
+		if (AppCompatActivity.class.isAssignableFrom(mObject.getClass())) {
+			res = ((AppCompatActivity) mObject).getSupportActionBar().getHeight();
 		} else if (Activity.class.isAssignableFrom(mObject.getClass())) {
             res = ((Activity) mObject).getActionBar().getHeight();
         }
@@ -150,5 +146,20 @@ public class Display {
 		return context.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
 	}
 
+    public static int getSoftButtonsBarHeight(Activity activity) {
+        // getRealMetrics is only available with API 17 and +
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+            DisplayMetrics metrics = new DisplayMetrics();
+            activity.getWindowManager().getDefaultDisplay().getMetrics(metrics);
+            int usableHeight = metrics.heightPixels;
+            activity.getWindowManager().getDefaultDisplay().getRealMetrics(metrics);
+            int realHeight = metrics.heightPixels;
+            if (realHeight > usableHeight)
+                return realHeight - usableHeight;
+            else
+                return 0;
+        }
+        return 0;
+    }
 
 }

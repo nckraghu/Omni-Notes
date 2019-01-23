@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Federico Iosue (federico.iosue@gmail.com)
+ * Copyright (C) 2013-2019 Federico Iosue (federico@iosue.it)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,7 +24,6 @@ import android.appwidget.AppWidgetProvider;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.util.SparseArray;
@@ -82,7 +81,7 @@ public abstract class WidgetProvider extends AppWidgetProvider {
 
         // Create an Intent to launch DetailActivity to take a photo
         Intent intentDetailPhoto = new Intent(context, MainActivity.class);
-        intentDetailPhoto.setAction(Constants.ACTION_TAKE_PHOTO);
+        intentDetailPhoto.setAction(Constants.ACTION_WIDGET_TAKE_PHOTO);
         intentDetailPhoto.putExtra(Constants.INTENT_WIDGET, widgetId);
         PendingIntent pendingIntentDetailPhoto = PendingIntent.getActivity(context, widgetId, intentDetailPhoto,
                 Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -90,13 +89,11 @@ public abstract class WidgetProvider extends AppWidgetProvider {
         // Check various dimensions aspect of widget to choose between layouts
         boolean isSmall = false;
         boolean isSingleLine = true;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-            Bundle options = appWidgetManager.getAppWidgetOptions(widgetId);
-            // Width check
-            isSmall = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH) < 110;
-            // Height check
-            isSingleLine = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT) < 110;
-        }
+		Bundle options = appWidgetManager.getAppWidgetOptions(widgetId);
+		// Width check
+		isSmall = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH) < 110;
+		// Height check
+		isSingleLine = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT) < 110;
 
         // Creation of a map to associate PendingIntent(s) to views
         SparseArray<PendingIntent> map = new SparseArray<>();

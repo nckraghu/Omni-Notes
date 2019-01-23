@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2016 Federico Iosue (federico.iosue@gmail.com)
+ * Copyright (C) 2013-2019 Federico Iosue (federico@iosue.it)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundatibehaon, either version 3 of the License, or
+ * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -18,10 +18,11 @@
 package it.feio.android.omninotes.helpers;
 
 
-import it.feio.android.omninotes.models.Attachment;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
+
+import it.feio.android.omninotes.models.Attachment;
 
 
 public class AttachmentsHelper {
@@ -38,5 +39,18 @@ public class AttachmentsHelper {
 			sizeInKb = new File(attachment.getUri().getPath()).length();
 		}
 		return FileUtils.byteCountToDisplaySize(sizeInKb);
+	}
+
+	/**
+	 * Checks type of attachment
+	 *
+	 * @param attachment
+	 * @return
+	 */
+	public static boolean typeOf(Attachment attachment, String... mimeTypes) {
+		for (String mimeType : mimeTypes) {
+			if (mimeType.equals(attachment.getMime_type())) return true;
+		}
+		return false;
 	}
 }

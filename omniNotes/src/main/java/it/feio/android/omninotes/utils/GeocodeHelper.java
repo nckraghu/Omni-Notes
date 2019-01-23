@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Federico Iosue (federico.iosue@gmail.com)
+ * Copyright (C) 2013-2019 Federico Iosue (federico@iosue.it)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@ import io.nlopez.smartlocation.location.config.LocationParams;
 import io.nlopez.smartlocation.rx.ObservableFactory;
 import it.feio.android.omninotes.BuildConfig;
 import it.feio.android.omninotes.OmniNotes;
-import it.feio.android.omninotes.helpers.GeoCodeProviderFactory;
+import it.feio.android.omninotes.helpers.GeocodeProviderFactory;
 import it.feio.android.omninotes.models.listeners.OnGeoUtilResultListener;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -89,7 +89,7 @@ public class GeocodeHelper implements LocationListener {
 
 	public static void getLocation(OnGeoUtilResultListener onGeoUtilResultListener) {
 		SmartLocation.LocationControl bod = SmartLocation.with(OmniNotes.getAppContext())
-				.location(GeoCodeProviderFactory.getProvider(OmniNotes.getAppContext()))
+				.location(GeocodeProviderFactory.getProvider(OmniNotes.getAppContext()))
 				.config(LocationParams.NAVIGATION).oneFix();
 
 		Observable<Location> locations = ObservableFactory.from(bod).timeout(2, TimeUnit.SECONDS);
